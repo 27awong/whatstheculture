@@ -1,0 +1,19 @@
+# System files
+.DS_Store
+Thumbs.db
+
+# IDEs
+.idea/
+.vscode/
+
+# Backend (Python)
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+
+# Frontend (Node/React/etc)
+node_modules/
+dist/
+build/
