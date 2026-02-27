@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>What's The Culture Around?</title>
+    <style>
+        :root {
+            --item-height: 80px;
+            --accent: #007AFF;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            background-color: #ffffff;
+            margin: 0;
+            color: #1c1c1e;
+        }
+
+        /* This wrapper centers the content vertically while keeping it stable */
+        .main-content {
+            margin-top: auto;
+            margin-bottom: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+
+        .sentence-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            font-size: 25px;
+            font-weight: 700;
+            text-align: center;
+            padding: 20px 40px;
+        }
+
+        .wheel-wrapper {
+            position: relative;
+            height: var(--item-height);
+            width: 270px;
+            overflow: hidden;
+            border-bottom: 3px solid #f2f2f7;
+        }
+
+        .wheel-wrapper::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to bottom, white, transparent 30%, transparent 70%, white);
+            pointer-events: none;
+        }
+
+        .wheel {
+            height: 100%;
+            overflow-y: scroll;
+            overflow-x: hidden;
+            scroll-snap-type: y mandatory;
+            scrollbar-width: none;
+            scroll-behavior: smooth;
+        }
+        .wheel::-webkit-scrollbar { display: none; }
+
+        .item {
+            height: var(--item-height);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            scroll-snap-align: center;
+            color: #d1d1d6;
+            transition: color 0.3s, transform 0.3s;
+        }
+
+        .item.active {
+            color: var(--accent);
+            transform: scale(1.1);
+        }
+
+        #description-box {
+            margin-top: 40px;
+            max-width: 600px;
+            padding: 20px 40px;
+            line-height: 1.6;
+            font-size: 20px;
+            color: #3a3a3c;
+            text-align: center;
+            /* RESERVES SPACE: This prevents the layout from jumping */
+            min-height: 200px;
+        }
+
+        button {
+            margin-top: 20px;
+            padding: 12px 24px;
+            border-radius: 25px;
+            border: none;
+            background: #f2f2f7;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover { background: #e5e5ea; }
+    </style>
+</head>
+<body>
+
+<div class="main-content">
+    <div class="sentence-container">
+        <span>What's the culture around</span>
+        <div class="wheel-wrapper">
+            <div class="wheel" id="wheel1"></div>
+        </div>
+        <span>in</span>
+        <div class="wheel-wrapper">
+            <div class="wheel" id="wheel2"></div>
+        </div>
+        <span>?</span>
+    </div>
+
+    <button onclick="spin()">Spin</button>
+
+    <div id="description-box">
+        Scroll to discover cultural norms.
+    </div>
+</div>
+
+<script>
+    const cultures = [
+        "Etiquette", "Clothing", "Alcohol", "Safety", "Tipping", "Dining",
+        "Punctuality", "Religion", "Taboos", "Nature", "Greetings",
+        "Personal Space", "Eye Contact", "Swearing", "Titles & Address",
+        "Gift Giving", "Gender Norms", "Noise Levels", "Physical Touch",
+        "Social Hierarchy", "Bargaining", "Photography", "Transportation",
+        "Queueing", "Coffee & Tea", "Bill Paying", "Street Food", "Smoking",
+        "Drinking Water", "Sustainability", "Relationships", "PDA", "Tattoos"
+    ];
+
+    let countries = [];
+    let contentMap = {};
+
+    const w1 = document.getElementById('wheel1');
+    const w2 = document.getElementById('wheel2');
+    const desc = document.getElementById('description-box');
+
+    function build(el, items) {
+        el.innerHTML = '';
+        items.forEach(text => {
+            const div = document.createElement('div');
+            div.className = 'item';
+            div.innerText = text;
+            el.appendChild(div);
+        });
+    }
+
+    function update() {
+        if (countries.length === 0) return;
+
+        const activeIdx1 = Math.round(w1.scrollTop / 80);
+        const activeIdx2 = Math.round(w2.scrollTop / 80);
+
+        const selectedCulture = cultures[activeIdx1] || cultures[0];
+        const selectedCountry = countries[activeIdx2] || countries[0];
+
+        [w1, w2].forEach((wheel, wheelIndex) => {
+            const items = wheel.querySelectorAll('.item');
+            const currentIdx = (wheelIndex === 0) ? activeIdx1 : activeIdx2;
+            items.forEach((item, i) => {
+                item.className = (i === currentIdx) ? 'item active' : 'item';
+            });
+        });
+
+        const key = `${selectedCulture}:${selectedCountry}`;
+
+        if (contentMap[key]) {
+            desc.innerHTML = contentMap[key];
+        } else {
+            desc.innerHTML = `Info for <strong>${selectedCulture}</strong> in <strong>${selectedCountry}</strong> is coming soon!`;
+        }
+    }
+
+    function spin() {
+        if (countries.length === 0) return;
+
+        const target1 = Math.floor(Math.random() * cultures.length);
+        const target2 = Math.floor(Math.random() * countries.length);
+
+        w1.scrollTo({ top: target1 * 80, behavior: 'smooth' });
+        w2.scrollTo({ top: target2 * 80, behavior: 'smooth' });
+    }
+
+    async function init() {
+        try {
+            const [mapRes, countriesRes] = await Promise.all([
+                fetch('contentMap.json'),
+                fetch('countries.json')
+            ]);
+
+            contentMap = await mapRes.json();
+            countries = await countriesRes.json();
+
+            build(w1, cultures);
+            build(w2, countries);
+
+            w1.addEventListener('scroll', update);
+            w2.addEventListener('scroll', update);
+
+            update();
+
+            setTimeout(() => {
+                spin();
+            }, 100);
+
+        } catch (error) {
+            console.error("Fetch error:", error);
+            desc.innerText = "Error loading data. Ensure you are using a local server.";
+        }
+    }
+
+    window.onload = init;
+</script>
+<p style="display:none;">
+    This guide provides cultural insights, etiquette, and travel tips for various countries
+    around the world, including dining norms, tipping, and social traditions.
+</p>
+</body>
+</html>
