@@ -332,37 +332,39 @@
     }
 
     // Instantly sets up random state behind the scenes on load
-    function randomInitialPosition() {
-        const target1 = Math.floor(Math.random() * cultures.length);
-        const target2 = Math.floor(Math.random() * countries.length);
+    // Spins fluidly to the random position right on load
+function randomInitialPosition() {
+    if (countries.length === 0) return;
 
-        w1.scrollTop = target1 * 80;
-        w2.scrollTop = target2 * 80;
-        
-        // Turn on smooth scrolling *after* the initial position is established
-        setTimeout(() => {
-            w1.style.scrollBehavior = 'smooth';
-            w2.style.scrollBehavior = 'smooth';
-        }, 50);
-    }
+    const target1 = Math.floor(Math.random() * cultures.length);
+    const target2 = Math.floor(Math.random() * countries.length);
 
-    // Subtle up and down bounce animation on mount
-    function nudgeWheels() {
+    // Use scrollTo to trigger the smooth CSS transition
+    w1.scrollTo({ top: target1 * 80 });
+    w2.scrollTo({ top: target2 * 80 });
+}
+
+// Delays the nudge until the initial random spin completes
+function nudgeWheels() {
+    // 800ms gives the initial random spin enough time to finish rolling
+    setTimeout(() => {
+        // If the user already interacted during the initial spin, abort the nudge
+        if (wrap1.classList.contains('user-scrolled') || wrap2.classList.contains('user-scrolled')) return;
+
         const base1 = w1.scrollTop;
         const base2 = w2.scrollTop;
 
+        // Nudge down slightly
+        w1.scrollTo({ top: base1 + 25 });
+        w2.scrollTo({ top: base2 + 25 });
+        
         setTimeout(() => {
-            // Nudge down slightly
-            w1.scrollTo({ top: base1 + 25 });
-            w2.scrollTo({ top: base2 + 25 });
-            
-            setTimeout(() => {
-                // Return to true target position
-                w1.scrollTo({ top: base1 });
-                w2.scrollTo({ top: base2 });
-            }, 300);
-        }, 600);
-    }
+            // Return to true target position if user hasn't touched it yet
+            if (!wrap1.classList.contains('user-scrolled')) w1.scrollTo({ top: base1 });
+            if (!wrap2.classList.contains('user-scrolled')) w2.scrollTo({ top: base2 });
+        }, 300);
+    }, 800); 
+}
 
     function spinButton() {
         wrap1.classList.add('user-scrolled');
