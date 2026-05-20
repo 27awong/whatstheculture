@@ -461,10 +461,10 @@
             // Hook up search input events
             searchInput.addEventListener('input', handleSearch);
             searchInput.addEventListener('focus', handleSearch);
-
-            update();
             spin();
-            nudgeWheels();
+            update();
+            
+            // nudgeWheels();
 
         } catch (error) {
             console.error("Initialization error:", error);
