@@ -180,8 +180,7 @@
             overflow-x: hidden;
             scroll-snap-type: y mandatory;
             scrollbar-width: none;
-            /* Changed to auto so initial jump happens instantly behind the scenes */
-            scroll-behavior: auto; 
+            scroll-behavior: smooth; /* Enabled for programmatic rolling animations */
         }
         .wheel::-webkit-scrollbar { display: none; }
 
@@ -302,7 +301,6 @@
     function update(e) {
         if (countries.length === 0) return;
 
-        // Hide arrows only if it's an actual user scroll event
         if (e && e.isTrusted) {
             if (e.currentTarget === w1) wrap1.classList.add('user-scrolled');
             if (e.currentTarget === w2) wrap2.classList.add('user-scrolled');
@@ -331,40 +329,45 @@
         }
     }
 
-    // Instantly sets up random state behind the scenes on load
-    // Spins fluidly to the random position right on load
-function randomInitialPosition() {
-    if (countries.length === 0) return;
+    // Handles the initial onboarding choreography sequentially 
+    function onboardingAnimation() {
+        if (countries.length === 0) return;
 
-    const target1 = Math.floor(Math.random() * cultures.length);
-    const target2 = Math.floor(Math.random() * countries.length);
+        const target1 = Math.floor(Math.random() * cultures.length);
+        const target2 = Math.floor(Math.random() * countries.length);
 
-    // Use scrollTo to trigger the smooth CSS transition
-    w1.scrollTo({ top: target1 * 80 });
-    w2.scrollTo({ top: target2 * 80 });
-}
+        // Step 1: Smoothly roll to a random position from index 0
+        w1.scrollTo({ top: target1 * 80, behavior: 'smooth' });
+        w2.scrollTo({ top: target2 * 80, behavior: 'smooth' });
 
-// Delays the nudge until the initial random spin completes
-function nudgeWheels() {
-    // 800ms gives the initial random spin enough time to finish rolling
-    setTimeout(() => {
-        // If the user already interacted during the initial spin, abort the nudge
-        if (wrap1.classList.contains('user-scrolled') || wrap2.classList.contains('user-scrolled')) return;
-
-        const base1 = w1.scrollTop;
-        const base2 = w2.scrollTop;
-
-        // Nudge down slightly
-        w1.scrollTo({ top: base1 + 25 });
-        w2.scrollTo({ top: base2 + 25 });
-        
+        // Step 2: Allow the random spin to complete, then initiate the descriptive nudge
         setTimeout(() => {
-            // Return to true target position if user hasn't touched it yet
-            if (!wrap1.classList.contains('user-scrolled')) w1.scrollTo({ top: base1 });
-            if (!wrap2.classList.contains('user-scrolled')) w2.scrollTo({ top: base2 });
-        }, 300);
-    }, 800); 
-}
+            if (wrap1.classList.contains('user-scrolled') || wrap2.classList.contains('user-scrolled')) return;
+
+            const base1 = w1.scrollTop;
+            const base2 = w2.scrollTop;
+
+            // Nudge Downward
+            w1.scrollTo({ top: base1 + 35, behavior: 'smooth' });
+            w2.scrollTo({ top: base2 + 35, behavior: 'smooth' });
+            
+            setTimeout(() => {
+                if (wrap1.classList.contains('user-scrolled') || wrap2.classList.contains('user-scrolled')) return;
+                
+                // Nudge Upward past the origin 
+                w1.scrollTo({ top: base1 - 25, behavior: 'smooth' });
+                w2.scrollTo({ top: base2 - 25, behavior: 'smooth' });
+
+                setTimeout(() => {
+                    if (wrap1.classList.contains('user-scrolled') || wrap2.classList.contains('user-scrolled')) return;
+                    
+                    // Settle perfectly back onto the target active snap row
+                    w1.scrollTo({ top: base1, behavior: 'smooth' });
+                    w2.scrollTo({ top: base2, behavior: 'smooth' });
+                }, 250);
+            }, 250);
+        }, 1200); // 1200ms gives the primary random roll plenty of room to land cleanly
+    }
 
     function spinButton() {
         wrap1.classList.add('user-scrolled');
@@ -377,8 +380,8 @@ function nudgeWheels() {
         const target1 = Math.floor(Math.random() * cultures.length);
         const target2 = Math.floor(Math.random() * countries.length);
 
-        w1.scrollTo({ top: target1 * 80 });
-        w2.scrollTo({ top: target2 * 80 });
+        w1.scrollTo({ top: target1 * 80, behavior: 'smooth' });
+        w2.scrollTo({ top: target2 * 80, behavior: 'smooth' });
     }
 
     // --- Search Functionality ---
@@ -433,10 +436,10 @@ function nudgeWheels() {
 
         if (type === 'culture') {
             const index = cultures.indexOf(value);
-            if (index !== -1) w1.scrollTo({ top: index * 80 });
+            if (index !== -1) w1.scrollTo({ top: index * 80, behavior: 'smooth' });
         } else if (type === 'country') {
             const index = countries.indexOf(value);
-            if (index !== -1) w2.scrollTo({ top: index * 80 });
+            if (index !== -1) w2.scrollTo({ top: index * 80, behavior: 'smooth' });
         }
 
         searchInput.value = '';
@@ -474,11 +477,10 @@ function nudgeWheels() {
             searchInput.addEventListener('input', handleSearch);
             searchInput.addEventListener('focus', handleSearch);
             
-            // Layout setups
             update();
-            randomInitialPosition();
             
-            nudgeWheels();
+            // Execute the sequential scroll-to-random + nudge event loop
+            onboardingAnimation();
 
         } catch (error) {
             console.error("Initialization error:", error);
