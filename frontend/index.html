@@ -272,7 +272,11 @@
                 ]);
                 contentMap = await mapRes.json();
                 countries = await countriesRes.json();
-
+            } catch(e) {
+                console.warn("Using fallback local data.");
+                countries = ["Japan", "France", "Brazil", "Egypt", "Canada"];
+                contentMap = {"Etiquette:Japan": "Bow when greeting others."};
+            }
 
             build(w1, cultures);
             build(w2, countries);
