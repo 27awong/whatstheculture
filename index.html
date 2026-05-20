@@ -475,8 +475,9 @@ function nudgeWheels() {
             searchInput.addEventListener('focus', handleSearch);
             
             // Layout setups
-            randomInitialPosition();
             update();
+            randomInitialPosition();
+            
             nudgeWheels();
 
         } catch (error) {
