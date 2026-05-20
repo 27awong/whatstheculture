@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>What's The Culture Around?</title>
+    <title>What's The Cultures Around?</title>
     <style>
         :root {
             --item-height: 80px;
@@ -50,12 +50,47 @@
             border-bottom: 3px solid #f2f2f7;
         }
 
+        /* NEW: Scroll indicators (little arrows) that hint at vertical movement */
+        .wheel-wrapper::before {
+            content: "▲";
+            position: absolute;
+            top: 2px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 10px;
+            color: var(--accent);
+            opacity: 0.4;
+            z-index: 2;
+            pointer-events: none;
+            transition: opacity 0.5s;
+        }
         .wheel-wrapper::after {
-            content: "";
+            content: "▼";
+            position: absolute;
+            bottom: 2px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 10px;
+            color: var(--accent);
+            opacity: 0.4;
+            z-index: 2;
+            pointer-events: none;
+            transition: opacity 0.5s;
+        }
+
+        /* Class to hide indicators once user scrolls */
+        .wheel-wrapper.user-scrolled::before,
+        .wheel-wrapper.user-scrolled::after {
+            opacity: 0;
+        }
+
+        /* Inner gradient over the arrows */
+        .wheel-overlay {
             position: absolute;
             inset: 0;
             background: linear-gradient(to bottom, white, transparent 30%, transparent 70%, white);
             pointer-events: none;
+            z-index: 1;
         }
 
         .wheel {
@@ -113,15 +148,17 @@
 <div class="main-content">
     <div class="sentence-container">
         <div class="search-section" style="text-align: center; margin-bottom: 10px;">
-    <input type="text" id="mainSearch" placeholder="Search a topic or country..." oninput="showSuggestions()">
-    <div id="suggestions" class="suggestions-list"></div>
-</div>
+            <input type="text" id="mainSearch" placeholder="Search a topic or country...">
+            <div id="suggestions" class="suggestions-list"></div>
+        </div>
         <span>What's the culture around</span>
-        <div class="wheel-wrapper">
+        <div class="wheel-wrapper" id="wrapper1">
+            <div class="wheel-overlay"></div>
             <div class="wheel" id="wheel1"></div>
         </div>
         <span>in</span>
-        <div class="wheel-wrapper">
+        <div class="wheel-wrapper" id="wrapper2">
+            <div class="wheel-overlay"></div>
             <div class="wheel" id="wheel2"></div>
         </div>
         <span>?</span>
@@ -150,6 +187,8 @@
 
     const w1 = document.getElementById('wheel1');
     const w2 = document.getElementById('wheel2');
+    const wrap1 = document.getElementById('wrapper1');
+    const wrap2 = document.getElementById('wrapper2');
     const desc = document.getElementById('description-box');
 
     function build(el, items) {
@@ -162,8 +201,14 @@
         });
     }
 
-    function update() {
+    function update(e) {
         if (countries.length === 0) return;
+
+        // If this update was triggered by an actual user scroll event, hide arrows
+        if (e && e.isTrusted) {
+            if (e.currentTarget === w1) wrap1.classList.add('user-scrolled');
+            if (e.currentTarget === w2) wrap2.classList.add('user-scrolled');
+        }
 
         const activeIdx1 = Math.round(w1.scrollTop / 80);
         const activeIdx2 = Math.round(w2.scrollTop / 80);
@@ -190,6 +235,10 @@
 
     function spin() {
         if (countries.length === 0) return;
+        
+        // Hide indicators if user clicks Spin
+        wrap1.classList.add('user-scrolled');
+        wrap2.classList.add('user-scrolled');
 
         const target1 = Math.floor(Math.random() * cultures.length);
         const target2 = Math.floor(Math.random() * countries.length);
@@ -198,15 +247,32 @@
         w2.scrollTo({ top: target2 * 80, behavior: 'smooth' });
     }
 
+    // NEW: Nudges the wheel down slightly and back up to subtly catch user's attention
+    function nudgeWheels() {
+        setTimeout(() => {
+            w1.scrollTo({ top: 35, behavior: 'smooth' });
+            w2.scrollTo({ top: 35, behavior: 'smooth' });
+            
+            setTimeout(() => {
+                // Return to center if user hasn't taken over control yet
+                if (!wrap1.classList.contains('user-scrolled')) w1.scrollTo({ top: 0, behavior: 'smooth' });
+                if (!wrap2.classList.contains('user-scrolled')) w2.scrollTo({ top: 0, behavior: 'smooth' });
+            }, 500);
+        }, 600);
+    }
+
     async function init() {
         try {
-            const [mapRes, countriesRes] = await Promise.all([
-                fetch('contentMap.json'),
-                fetch('countries.json')
-            ]);
+            // Fallback mock data if JSON files aren't available locally
+            let mapRes, countriesRes;
+            try {
+                [mapRes, countriesRes] = await Promise.all([
+                    fetch('contentMap.json'),
+                    fetch('countries.json')
+                ]);
+                contentMap = await mapRes.json();
+                countries = await countriesRes.json();
 
-            contentMap = await mapRes.json();
-            countries = await countriesRes.json();
 
             build(w1, cultures);
             build(w2, countries);
@@ -215,22 +281,17 @@
             w2.addEventListener('scroll', update);
 
             update();
-
-            setTimeout(() => {
-                spin();
-            }, 100);
+            
+            // Run the introductory nudge
+            nudgeWheels();
 
         } catch (error) {
-            console.error("Fetch error:", error);
-            desc.innerText = "Error loading data. Ensure you are using a local server.";
+            console.error("Initialization error:", error);
+            desc.innerText = "Error loading data.";
         }
     }
 
     window.onload = init;
 </script>
-<p style="display:none;">
-    This guide provides cultural insights, etiquette, and travel tips for various countries
-    around the world, including dining norms, tipping, and social traditions.
-</p>
 </body>
 </html>
