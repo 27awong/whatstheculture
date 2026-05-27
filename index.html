@@ -344,11 +344,16 @@
             desc.innerHTML = `Info for <strong>${selectedCulture}</strong> in <strong>${selectedCountry}</strong> is coming soon!`;
         }
 
-        document.title = `What's the culture around ${selectedCulture} in ${selectedCountry}`;
+        document.title = `What's the culture around ${selectedCulture} in ${selectedCountry}?`;
     }
 
     // Explicitly handles user inputs to terminate automatic routines instantly
     function interruptOnboarding() {
+        if (nudgeInterval) {
+            clearInterval(nudgeInterval); // <-- Destroys the 10s loop forever
+            nudgeInterval = null;
+        }
+
         if (!doingOnboarding) return;
         userInterrupted = true;
         doingOnboarding = false;
@@ -416,6 +421,36 @@
         }, 1400); // Safe window for primary spin to land clean
     }
 
+    function idleNudge() {
+    // Safety checks: don't nudge if the user interacted, is searching, or onboarding is running
+    if (userInterrupted || doingOnboarding || document.activeElement === searchInput) return;
+
+    // Temporarily remove snapping constraints for a smooth visual nudge
+    w1.classList.add('no-snap');
+    w2.classList.add('no-snap');
+
+    const currentTop1 = w1.scrollTop;
+    const currentTop2 = w2.scrollTop;
+
+    // Phase 1: Micro-nudge down
+    w1.scrollTo({ top: currentTop1 + 15, behavior: 'smooth' });
+    w2.scrollTo({ top: currentTop2 + 15, behavior: 'smooth' });
+
+    setTimeout(() => {
+        if (userInterrupted) return;
+        // Phase 2: Micro-nudge up past the center
+        w1.scrollTo({ top: currentTop1 - 10, behavior: 'smooth' });
+        w2.scrollTo({ top: currentTop2 - 10, behavior: 'smooth' });
+
+        setTimeout(() => {
+            // Phase 3: Settle perfectly back onto the exact original index
+            w1.classList.remove('no-snap');
+            w2.classList.remove('no-snap');
+            w1.scrollTo({ top: currentTop1, behavior: 'smooth' });
+            w2.scrollTo({ top: currentTop2, behavior: 'smooth' });
+        }, 250);
+    }, 250);
+    }
     function spinButton() {
         interruptOnboarding();
         wrap1.classList.add('user-scrolled');
@@ -534,6 +569,7 @@
             
             update();
             onboardingAnimation();
+            nudgeInterval = setInterval(idleNudge, 10000);
 
         } catch (error) {
             console.error("Initialization error:", error);
