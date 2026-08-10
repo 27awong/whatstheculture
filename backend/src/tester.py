@@ -36,7 +36,7 @@ def test_single_entry():
         model="gpt-4o-mini",
         messages=[
             {"role": "system",
-             "content": "You are a world-class travel cultural expert. Provide a concise, 2-sentence insight about the specific cultural norm requested. Show nuance in your response, try not to be to general and if there are exceptions to a rule, show them. Be factual. Do not speak too much, keep it under 20 words."},
+             "content": "You are a world-class travel cultural expert. Provide a concise, 2-sentence insight about the specific cultural norm requested. Be factual and avoid generic travel advice. Do not output more than is necessary to understand the topic at hand."},
             {"role": "user", "content": f"What is the cultural norm for '{category}' in {country}?"}
         ]
     )
