@@ -1,0 +1,1 @@
+search for ^.*(?<!\.",)$ in the contentmap, anything selected is an incorrect entry
