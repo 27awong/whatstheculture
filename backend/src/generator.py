@@ -35,7 +35,7 @@ def generate_batch():
                         "messages": [
                             {
                                 "role": "system",
-                                "content": "You are a world-class travel cultural expert. Provide a concise, 2-sentence insight about the specific cultural norm requested. Be factual and avoid generic travel advice. Do not output more than is necessary to understand the topic at hand."
+                                "content": "You are a world-class travel cultural expert. Provide a concise, 2-sentence insight about the specific cultural norm requested. Be factual and avoid generic travel advice. Do not output more than is necessary to understand the topic at hand, and finish all sentences with a period."
                             },
                             {
                                 "role": "user",
