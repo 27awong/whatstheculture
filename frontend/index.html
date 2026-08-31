@@ -3,11 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>What's The Cultures Around?</title>
+    <title>What's The Culture Around?</title>
     <style>
         :root {
             --item-height: 80px;
             --accent: #007AFF;
+            --wiki-blue: #0284c7;
+            --wiki-hover: #0369a1;
+        }
+
+        html, body {
+            margin: 0;
+            overscroll-behavior: none;
         }
 
         body {
@@ -16,11 +23,93 @@
             flex-direction: column;
             min-height: 100vh;
             background-color: #ffffff;
-            margin: 0;
             color: #1c1c1e;
+            position: relative;
         }
 
-        /* This wrapper centers the content vertically while keeping it stable */
+        /* Top-pinned Search Bar */
+        .search-section {
+            position: absolute;
+            top: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 320px;
+            z-index: 20;
+        }
+
+        #mainSearch {
+            width: 100%;
+            padding: 12px 20px;
+            border-radius: 25px;
+            border: 1px solid #d1d1d6;
+            font-size: 16px;
+            outline: none;
+            box-sizing: border-box;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            background: #ffffff;
+        }
+
+        #mainSearch:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.15);
+        }
+
+        .suggestions-list {
+            position: absolute;
+            top: 48px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 480px;
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+            display: none;
+            grid-template-columns: 1fr 1fr;
+            gap: 0;
+            overflow: hidden;
+            z-index: 30;
+        }
+
+        .suggestions-column {
+            display: flex;
+            flex-direction: column;
+            max-height: 220px;
+            overflow-y: auto;
+            padding: 6px 0;
+        }
+
+        .suggestions-column:first-child {
+            border-right: 1px solid #f2f2f7;
+        }
+
+        .suggestions-header {
+            padding: 6px 16px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #8e8e93;
+            background: #ffffff;
+            position: sticky;
+            top: 0;
+        }
+
+        .suggestion-item {
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            text-align: left;
+            cursor: pointer;
+            color: #3a3a3c;
+            transition: background 0.15s;
+        }
+
+        .suggestion-item:hover {
+            background-color: #f2f2f7;
+            color: var(--accent);
+        }
+
+        /* Centered vertical wrapper */
         .main-content {
             margin-top: auto;
             margin-bottom: auto;
@@ -28,11 +117,12 @@
             flex-direction: column;
             align-items: center;
             width: 100%;
+            padding-top: 80px;
         }
 
         .sentence-container {
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             justify-content: center;
             flex-wrap: wrap;
             gap: 12px;
@@ -40,6 +130,20 @@
             font-weight: 700;
             text-align: center;
             padding: 20px 40px;
+        }
+
+        .sentence-container > span {
+            height: var(--item-height);
+            display: flex;
+            align-items: center;
+        }
+
+        /* Wrappers for wheels + locks */
+        .wheel-column {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
         }
 
         .wheel-wrapper {
@@ -50,7 +154,7 @@
             border-bottom: 3px solid #f2f2f7;
         }
 
-        /* NEW: Scroll indicators (little arrows) that hint at vertical movement */
+        /* Scroll indicators */
         .wheel-wrapper::before {
             content: "▲";
             position: absolute;
@@ -78,13 +182,11 @@
             transition: opacity 0.5s;
         }
 
-        /* Class to hide indicators once user scrolls */
         .wheel-wrapper.user-scrolled::before,
         .wheel-wrapper.user-scrolled::after {
             opacity: 0;
         }
 
-        /* Inner gradient over the arrows */
         .wheel-overlay {
             position: absolute;
             inset: 0;
@@ -100,6 +202,7 @@
             scroll-snap-type: y mandatory;
             scrollbar-width: none;
             scroll-behavior: smooth;
+            overscroll-behavior: contain;
         }
         .wheel::-webkit-scrollbar { display: none; }
 
@@ -113,24 +216,96 @@
             transition: color 0.3s, transform 0.3s;
         }
 
+        .item.empty-item {
+            pointer-events: none;
+        }
+
         .item.active {
             color: var(--accent);
             transform: scale(1.1);
         }
 
+        /* Nudge & Lock UI */
+        .nudge-text {
+            position: absolute;
+            bottom: -24px;
+            font-size: 12px;
+            color: var(--accent);
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            pointer-events: auto;
+            white-space: nowrap;
+        }
+        
+        .nudge-text.visible {
+            opacity: 1;
+        }
+
+        .lock-btn {
+            margin-top: 16px;
+            cursor: pointer;
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.2s;
+        }
+
+        .lock-btn.locked {
+            color: #1c1c1e;
+        }
+
+        .lock-anim {
+            animation: lockSnap 0.3s ease-in-out;
+        }
+
+        @keyframes lockSnap {
+            0% { transform: scale(1) translateY(0); }
+            50% { transform: scale(1.2) translateY(-2px); }
+            100% { transform: scale(1) translateY(0); }
+        }
+
+        @keyframes wiggle {
+            0%, 100% { transform: translateY(0); }
+            25% { transform: translateY(-4px); }
+            75% { transform: translateY(4px); }
+        }
+
+        .wiggle {
+            animation: wiggle 0.4s ease-in-out;
+        }
+
+        .spin-msg {
+            margin-top: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--accent);
+            min-height: 20px;
+            text-align: center;
+            opacity: 1;
+        }
+
+        @keyframes napFade {
+            0% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        .spin-msg.nap-fade {
+            animation: napFade 40s linear forwards;
+        }
+
         #description-box {
-            margin-top: 40px;
+            margin-top: 50px;
             max-width: 600px;
             padding: 20px 40px;
             line-height: 1.6;
             font-size: 20px;
             color: #3a3a3c;
             text-align: center;
-            /* RESERVES SPACE: This prevents the layout from jumping */
             min-height: 200px;
         }
 
-        button {
+        button.spin-btn {
             margin-top: 20px;
             padding: 12px 24px;
             border-radius: 25px;
@@ -140,31 +315,55 @@
             cursor: pointer;
             transition: background 0.2s;
         }
-        button:hover { background: #e5e5ea; }
+        button.spin-btn:hover { background: #e5e5ea; }
     </style>
 </head>
 <body>
 
+<div class="search-section">
+    <input type="text" id="mainSearch" placeholder="Search a topic or country..." autocomplete="off">
+    <div id="suggestions" class="suggestions-list"></div>
+</div>
+
 <div class="main-content">
     <div class="sentence-container">
-        <div class="search-section" style="text-align: center; margin-bottom: 10px;">
-            <input type="text" id="mainSearch" placeholder="Search a topic or country...">
-            <div id="suggestions" class="suggestions-list"></div>
-        </div>
         <span>What's the culture around</span>
-        <div class="wheel-wrapper" id="wrapper1">
-            <div class="wheel-overlay"></div>
-            <div class="wheel" id="wheel1"></div>
+        
+        <div class="wheel-column">
+            <div class="wheel-wrapper" id="wrapper1">
+                <div class="wheel-overlay"></div>
+                <div class="wheel" id="wheel1"></div>
+            </div>
+            <div class="lock-btn" id="lockBtn1" onclick="toggleLock(1)">
+                <svg id="lockIcon1" viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
+                </svg>
+            </div>
+            <div class="nudge-text" id="nudge1">try scrolling me!</div>
         </div>
+
         <span>in</span>
-        <div class="wheel-wrapper" id="wrapper2">
-            <div class="wheel-overlay"></div>
-            <div class="wheel" id="wheel2"></div>
+
+        <div class="wheel-column">
+            <div class="wheel-wrapper" id="wrapper2">
+                <div class="wheel-overlay"></div>
+                <div class="wheel" id="wheel2"></div>
+            </div>
+            <div class="lock-btn" id="lockBtn2" onclick="toggleLock(2)">
+                <svg id="lockIcon2" viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
+                </svg>
+            </div>
+            <div class="nudge-text" id="nudge2">try scrolling me!</div>
         </div>
+
         <span>?</span>
     </div>
 
-    <button onclick="spin()">Spin</button>
+    <button class="spin-btn" onclick="spin()">Spin</button>
+    <div id="spinMsg" class="spin-msg"></div>
 
     <div id="description-box">
         Scroll to discover cultural norms.
@@ -179,48 +378,263 @@
         "Gift Giving", "Gender Norms", "Noise Levels", "Physical Touch",
         "Social Hierarchy", "Bargaining", "Photography", "Transportation",
         "Queueing", "Coffee & Tea", "Bill Paying", "Street Food", "Smoking",
-        "Drinking Water", "Sustainability", "Relationships", "PDA", "Tattoos"
+        "Drinking Water", "Sustainability", "Relationships", "PDA", "Tattoos",
+        "Recycling", "Toilets", "Money Talk", "Meat", "Public Behavior", "LGBTQ"
     ];
+
+    const countryAliases = {
+        "usa": "United States", "us": "United States", "america": "United States",
+        "uk": "United Kingdom", "england": "United Kingdom", "britain": "United Kingdom",
+        "uae": "United Arab Emirates", "emirates": "United Arab Emirates",
+        "holland": "Netherlands", "south korea": "Korea (South)", "korea": "Korea (South)"
+    };
+
+    const cultureAliases = {
+        "booze": "Alcohol", "drinking": "Alcohol", "liquor": "Alcohol", "beer": "Alcohol",
+        "wine": "Alcohol", "spirits": "Alcohol", "bars": "Alcohol", "pub": "Alcohol",
+        "money": "Money Talk", "salary": "Money Talk", "wealth": "Money Talk", "rich": "Money Talk", "cost": "Money Talk",
+        "tipping": "Tipping", "tips": "Tipping", "gratuity": "Tipping", "service charge": "Tipping",
+        "clothes": "Clothing", "dress code": "Clothing", "wearing": "Clothing", "outfit": "Clothing", "attire": "Clothing", "modesty": "Clothing",
+        "food": "Dining", "eating": "Dining", "restaurant": "Dining", "meal": "Dining", "dinner": "Dining", "cuisine": "Dining",
+        "veggie": "Meat", "vegetarian": "Meat", "vegan": "Meat", "beef": "Meat", "pork": "Meat", "halal": "Meat", "kosher": "Meat",
+        "buses": "Transportation", "transit": "Transportation", "trains": "Transportation", "subway": "Transportation", "metro": "Transportation", "taxi": "Transportation", "cab": "Transportation", "driving": "Transportation",
+        "queuing": "Queueing", "lines": "Queueing", "queue": "Queueing", "waiting in line": "Queueing",
+        "hugging": "Physical Touch", "touching": "Physical Touch", "handshake": "Physical Touch", "kissing cheeks": "Physical Touch", "contact": "Physical Touch",
+        "manners": "Etiquette", "polite": "Etiquette", "rude": "Etiquette", "behavior": "Etiquette", "customs": "Etiquette",
+        "crime": "Safety", "danger": "Safety", "scam": "Safety", "secure": "Safety", "emergency": "Safety", "police": "Safety",
+        "on time": "Punctuality", "late": "Punctuality", "schedule": "Punctuality", "delay": "Punctuality", "timing": "Punctuality",
+        "church": "Religion", "mosque": "Religion", "temple": "Religion", "god": "Religion", "sacred": "Religion", "faith": "Religion", "spiritual": "Religion",
+        "offensive": "Taboos", "forbidden": "Taboos", "illegal": "Taboos", "prohibited": "Taboos", "insult": "Taboos",
+        "environment": "Nature", "wildlife": "Nature", "outdoors": "Nature", "parks": "Nature", "animals": "Nature",
+        "hello": "Greetings", "hi": "Greetings", "welcome": "Greetings", "wave": "Greetings", "bowing": "Greetings", "meeting people": "Greetings",
+        "distance": "Personal Space", "crowd": "Personal Space", "standing": "Personal Space", "closeness": "Personal Space",
+        "staring": "Eye Contact", "looking": "Eye Contact", "gaze": "Eye Contact",
+        "cursing": "Swearing", "profanity": "Swearing", "bad words": "Swearing", "insults": "Swearing",
+        "names": "Titles & Address", "last name": "Titles & Address",
+        "present": "Gift Giving",
+        "men": "Gender Norms", "women": "Gender Norms",
+        "loud": "Noise Levels", "quiet": "Noise Levels", "talking": "Noise Levels", "shouting": "Noise Levels", "silence": "Noise Levels",
+        "elders": "Social Hierarchy", "status": "Social Hierarchy", "respect": "Social Hierarchy", "class": "Social Hierarchy", "caste": "Social Hierarchy",
+        "negotiating": "Bargaining", "haggling": "Bargaining", "price": "Bargaining", "market": "Bargaining", "discount": "Bargaining",
+        "camera": "Photography", "photos": "Photography", "picture": "Photography", "video": "Photography", "filming": "Photography",
+        "cafe": "Coffee & Tea", "espresso": "Coffee & Tea", "starbucks": "Coffee & Tea", "matcha": "Coffee & Tea", "herbal": "Coffee & Tea",
+        "check": "Bill Paying", "split": "Bill Paying", "paying": "Bill Paying", "cash": "Bill Paying", "card": "Bill Paying",
+        "vendor": "Street Food", "market food": "Street Food", "stalls": "Street Food", "food truck": "Street Food",
+        "cigarettes": "Smoking", "vape": "Smoking", "vaping": "Smoking", "tobacco": "Smoking", "weed": "Smoking",
+        "tap water": "Drinking Water", "bottled water": "Drinking Water", "hydration": "Drinking Water", "potable": "Drinking Water",
+        "green": "Sustainability", "eco": "Sustainability", "conservation": "Sustainability", "climate": "Sustainability",
+        "dating": "Relationships", "marriage": "Relationships", "family": "Relationships", "friends": "Relationships",
+        "public displays of affection": "PDA", "holding hands": "PDA", "romance": "PDA", "affection": "PDA", "snogging": "PDA", "cuddling": "PDA",
+        "ink": "Tattoos", "piercings": "Tattoos", "body art": "Tattoos",
+        "garbage": "Recycling", "trash": "Recycling", "waste": "Recycling", "litter": "Recycling", "bins": "Recycling",
+        "bathroom": "Toilets", "restroom": "Toilets", "wc": "Toilets", "loo": "Toilets", "bidet": "Toilets", "squat pot": "Toilets",
+        "staring in public": "Public Behavior", "spitting": "Public Behavior", "chewing gum": "Public Behavior", "blowing nose": "Public Behavior",
+        "gay": "LGBTQ", "lesbian": "LGBTQ", "queer": "LGBTQ", "trans": "LGBTQ", "pride": "LGBTQ", "same-sex": "LGBTQ"
+    };
+
+    const spinMessages = [
+        "you can't expect to lock both of us and have either move",
+        "still not gonna happen",
+        "try unlocking one",
+        "i've run out of things to say, back to the start"
+    ];
+    let spinMsgIndex = 0;
+    let lockedSpinCount = 0;
+    let isExhausted = false;
 
     let countries = [];
     let contentMap = {};
+    let isLocked1 = false;
+    let isLocked2 = false;
+    let isProgrammaticScroll = false;
+    let bounceTimeouts = {};
+
+    // Cookie helpers
+    function setCookie(name, value, days) {
+        let expires = "";
+        if (days) {
+            const date = new Date();
+            date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+            expires = "; expires=" + date.toUTCString();
+        }
+        document.cookie = name + "=" + (value || "") + expires + "; path=/";
+    }
+
+    function getCookie(name) {
+        const nameEQ = name + "=";
+        const ca = document.cookie.split(';');
+        for(let i=0;i < ca.length;i++) {
+            let c = ca[i];
+            while (c.charAt(0)==' ') c = c.substring(1,c.length);
+            if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length,c.length);
+        }
+        return null;
+    }
+
+    // Timer refs
+    let wiggleInterval, textTimeout, startDelay;
+    let userKnowsToScroll = getCookie('userHasScrolled') === 'true';
 
     const w1 = document.getElementById('wheel1');
     const w2 = document.getElementById('wheel2');
     const wrap1 = document.getElementById('wrapper1');
     const wrap2 = document.getElementById('wrapper2');
     const desc = document.getElementById('description-box');
+    const spinMsgEl = document.getElementById('spinMsg');
+
+    const searchInput = document.getElementById('mainSearch');
+    const suggestionsBox = document.getElementById('suggestions');
 
     function build(el, items) {
         el.innerHTML = '';
+
+        // Empty top space boundary
+        const topEmpty = document.createElement('div');
+        topEmpty.className = 'item empty-item';
+        el.appendChild(topEmpty);
+
         items.forEach(text => {
             const div = document.createElement('div');
             div.className = 'item';
             div.innerText = text;
             el.appendChild(div);
         });
+
+        // Empty bottom space boundary
+        const bottomEmpty = document.createElement('div');
+        bottomEmpty.className = 'item empty-item';
+        el.appendChild(bottomEmpty);
+
+        // Start positioned at first real item
+        el.scrollTop = 80;
+    }
+
+    function toggleLock(wheelId) {
+        const btn = document.getElementById(`lockBtn${wheelId}`);
+        const icon = document.getElementById(`lockIcon${wheelId}`);
+        const wheelEl = wheelId === 1 ? w1 : w2;
+        
+        btn.classList.remove('lock-anim');
+        void btn.offsetWidth;
+        btn.classList.add('lock-anim');
+
+        if (wheelId === 1) {
+            isLocked1 = !isLocked1;
+            btn.classList.toggle('locked', isLocked1);
+            wheelEl.style.overflowY = isLocked1 ? 'hidden' : 'scroll';
+            icon.innerHTML = isLocked1 
+                ? '<rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path>'
+                : '<rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 9.9-1"></path>';
+        } else {
+            isLocked2 = !isLocked2;
+            btn.classList.toggle('locked', isLocked2);
+            wheelEl.style.overflowY = isLocked2 ? 'hidden' : 'scroll';
+            icon.innerHTML = isLocked2 
+                ? '<rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path>'
+                : '<rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 9.9-1"></path>';
+        }
+
+        if (!isLocked1 || !isLocked2) {
+            spinMsgEl.innerText = '';
+            spinMsgEl.classList.remove('nap-fade');
+            lockedSpinCount = 0;
+            spinMsgIndex = 0;
+            isExhausted = false;
+        }
+    }
+
+    function handleNudgeScroll(e) {
+        if (!e.currentTarget.classList.contains('visible')) return;
+        e.preventDefault();
+        e.stopPropagation();
+        e.currentTarget.innerText = "not me, silly, the text above me";
+    }
+
+    function startNudgeTimers() {
+        if (userKnowsToScroll) return;
+
+        startDelay = setTimeout(() => {
+            wiggleInterval = setInterval(() => {
+                if (!wrap1.classList.contains('user-scrolled')) {
+                    w1.classList.add('wiggle');
+                    setTimeout(() => w1.classList.remove('wiggle'), 400);
+                }
+                if (!wrap2.classList.contains('user-scrolled')) {
+                    w2.classList.add('wiggle');
+                    setTimeout(() => w2.classList.remove('wiggle'), 400);
+                }
+            }, 5000);
+        }, 10000);
+
+        textTimeout = setTimeout(() => {
+            if (!wrap1.classList.contains('user-scrolled')) {
+                const n1 = document.getElementById('nudge1');
+                n1.innerText = "try scrolling me!";
+                n1.classList.add('visible');
+            }
+            if (!wrap2.classList.contains('user-scrolled')) {
+                const n2 = document.getElementById('nudge2');
+                n2.innerText = "try scrolling me!";
+                n2.classList.add('visible');
+            }
+        }, 20000);
+    }
+
+    function clearNudgeTimers() {
+        clearTimeout(startDelay);
+        clearTimeout(textTimeout);
+        clearInterval(wiggleInterval);
+        document.getElementById('nudge1').classList.remove('visible');
+        document.getElementById('nudge2').classList.remove('visible');
+    }
+
+    function handleBounce(wheel, wheelId, listLength) {
+        clearTimeout(bounceTimeouts[wheelId]);
+        bounceTimeouts[wheelId] = setTimeout(() => {
+            const rawIdx = Math.round(wheel.scrollTop / 80);
+            if (rawIdx <= 0) {
+                wheel.scrollTo({ top: 80, behavior: 'smooth' });
+            } else if (rawIdx >= listLength + 1) {
+                wheel.scrollTo({ top: listLength * 80, behavior: 'smooth' });
+            }
+        }, 120);
     }
 
     function update(e) {
         if (countries.length === 0) return;
 
-        // If this update was triggered by an actual user scroll event, hide arrows
-        if (e && e.isTrusted) {
+        if (e && e.isTrusted && !isProgrammaticScroll) {
             if (e.currentTarget === w1) wrap1.classList.add('user-scrolled');
             if (e.currentTarget === w2) wrap2.classList.add('user-scrolled');
+            
+            clearNudgeTimers();
+            if (!userKnowsToScroll) {
+                setCookie('userHasScrolled', 'true', 365);
+                userKnowsToScroll = true;
+            }
         }
 
-        const activeIdx1 = Math.round(w1.scrollTop / 80);
-        const activeIdx2 = Math.round(w2.scrollTop / 80);
+        handleBounce(w1, 1, cultures.length);
+        handleBounce(w2, 2, countries.length);
+
+        const rawIdx1 = Math.round(w1.scrollTop / 80);
+        const rawIdx2 = Math.round(w2.scrollTop / 80);
+
+        const activeIdx1 = Math.max(0, Math.min(cultures.length - 1, rawIdx1 - 1));
+        const activeIdx2 = Math.max(0, Math.min(countries.length - 1, rawIdx2 - 1));
 
         const selectedCulture = cultures[activeIdx1] || cultures[0];
         const selectedCountry = countries[activeIdx2] || countries[0];
 
         [w1, w2].forEach((wheel, wheelIndex) => {
             const items = wheel.querySelectorAll('.item');
-            const currentIdx = (wheelIndex === 0) ? activeIdx1 : activeIdx2;
+            const targetDomIdx = (wheelIndex === 0) ? activeIdx1 + 1 : activeIdx2 + 1;
             items.forEach((item, i) => {
-                item.className = (i === currentIdx) ? 'item active' : 'item';
+                if (i === targetDomIdx && !item.classList.contains('empty-item')) {
+                    item.className = 'item active';
+                } else if (!item.classList.contains('empty-item')) {
+                    item.className = 'item';
+                }
             });
         });
 
@@ -234,36 +648,151 @@
     }
 
     function spin() {
-        if (countries.length === 0) return;
+        if (countries.length === 0 || isExhausted) return;
+
+        if (isLocked1 && isLocked2) {
+            lockedSpinCount++;
+            spinMsgEl.classList.remove('nap-fade');
+            void spinMsgEl.offsetWidth;
+
+            if (lockedSpinCount === 10 * Object.keys(spinMessages).length) {
+                spinMsgEl.innerText = "i'm exhausted, time for a nap";
+                spinMsgEl.classList.add('nap-fade');
+                isExhausted = true;
+            } else {
+                spinMsgEl.innerText = spinMessages[spinMsgIndex];
+                spinMsgIndex = (spinMsgIndex + 1) % spinMessages.length;
+            }
+            return;
+        } else {
+            spinMsgEl.innerText = '';
+            spinMsgEl.classList.remove('nap-fade');
+            lockedSpinCount = 0;
+        }
+
+        isProgrammaticScroll = true;
+        setTimeout(() => { isProgrammaticScroll = false; }, 1000);
+
+        if (!isLocked1) {
+            const target1 = Math.floor(Math.random() * cultures.length);
+            w1.scrollTo({ top: (target1 + 1) * 80, behavior: 'smooth' });
+        }
         
-        // Hide indicators if user clicks Spin
-        wrap1.classList.add('user-scrolled');
-        wrap2.classList.add('user-scrolled');
-
-        const target1 = Math.floor(Math.random() * cultures.length);
-        const target2 = Math.floor(Math.random() * countries.length);
-
-        w1.scrollTo({ top: target1 * 80, behavior: 'smooth' });
-        w2.scrollTo({ top: target2 * 80, behavior: 'smooth' });
+        if (!isLocked2) {
+            const target2 = Math.floor(Math.random() * countries.length);
+            w2.scrollTo({ top: (target2 + 1) * 80, behavior: 'smooth' });
+        }
     }
 
-    // NEW: Nudges the wheel down slightly and back up to subtly catch user's attention
-    function nudgeWheels() {
-        setTimeout(() => {
-            w1.scrollTo({ top: 35, behavior: 'smooth' });
-            w2.scrollTo({ top: 35, behavior: 'smooth' });
+    searchInput.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase().trim();
+        suggestionsBox.innerHTML = '';
+
+        if (!query) {
+            suggestionsBox.style.display = 'none';
+            return;
+        }
+
+        const matchedCultures = [];
+        const matchedCountries = [];
+        const addedCultures = new Set();
+        const addedCountries = new Set();
+
+        cultures.forEach((culture, index) => {
+            const lowerCulture = culture.toLowerCase();
+            let matchedAliasStr = null;
+
+            const matchedAlias = Object.entries(cultureAliases).some(([alias, canonical]) => {
+                if (alias.includes(query) && canonical === culture) {
+                    matchedAliasStr = alias;
+                    return true;
+                }
+                return false;
+            });
+
+            if ((lowerCulture.includes(query) || matchedAlias) && !addedCultures.has(culture)) {
+                matchedCultures.push({
+                    text: culture,
+                    index: index,
+                    alias: (matchedAliasStr && !lowerCulture.includes(query)) ? matchedAliasStr : null
+                });
+                addedCultures.add(culture);
+            }
+        });
+
+        countries.forEach((country, index) => {
+            const lowerCountry = country.toLowerCase();
+            let matchedAliasStr = null;
+
+            const matchedAlias = Object.entries(countryAliases).some(([alias, canonical]) => {
+                if (alias.includes(query) && canonical === country) {
+                    matchedAliasStr = alias;
+                    return true;
+                }
+                return false;
+            });
+
+            if ((lowerCountry.includes(query) || matchedAlias) && !addedCountries.has(country)) {
+                matchedCountries.push({
+                    text: country,
+                    index: index,
+                    alias: (matchedAliasStr && !lowerCountry.includes(query)) ? matchedAliasStr : null
+                });
+                addedCountries.add(country);
+            }
+        });
+
+        if (matchedCultures.length > 0 || matchedCountries.length > 0) {
+            const col1 = document.createElement('div');
+            col1.className = 'suggestions-column';
+            col1.innerHTML = `<div class="suggestions-header">Cultures</div>`;
             
-            setTimeout(() => {
-                // Return to center if user hasn't taken over control yet
-                if (!wrap1.classList.contains('user-scrolled')) w1.scrollTo({ top: 0, behavior: 'smooth' });
-                if (!wrap2.classList.contains('user-scrolled')) w2.scrollTo({ top: 0, behavior: 'smooth' });
-            }, 500);
-        }, 600);
-    }
+            if (matchedCultures.length > 0) {
+                matchedCultures.slice(0, 5).forEach(match => {
+                    const div = document.createElement('div');
+                    div.className = 'suggestion-item';
+                    div.innerText = match.alias ? `${match.text} (${match.alias})` : match.text;
+                    div.onclick = () => {
+                        isProgrammaticScroll = true;
+                        setTimeout(() => { isProgrammaticScroll = false; }, 800);
+                        w1.scrollTo({ top: (match.index + 1) * 80, behavior: 'smooth' });
+                        suggestionsBox.style.display = 'none';
+                        searchInput.value = '';
+                    };
+                    col1.appendChild(div);
+                });
+            }
+
+            const col2 = document.createElement('div');
+            col2.className = 'suggestions-column';
+            col2.innerHTML = `<div class="suggestions-header">Countries</div>`;
+            
+            if (matchedCountries.length > 0) {
+                matchedCountries.slice(0, 5).forEach(match => {
+                    const div = document.createElement('div');
+                    div.className = 'suggestion-item';
+                    div.innerText = match.alias ? `${match.text} (${match.alias})` : match.text;
+                    div.onclick = () => {
+                        isProgrammaticScroll = true;
+                        setTimeout(() => { isProgrammaticScroll = false; }, 800);
+                        w2.scrollTo({ top: (match.index + 1) * 80, behavior: 'smooth' });
+                        suggestionsBox.style.display = 'none';
+                        searchInput.value = '';
+                    };
+                    col2.appendChild(div);
+                });
+            }
+
+            suggestionsBox.appendChild(col1);
+            suggestionsBox.appendChild(col2);
+            suggestionsBox.style.display = 'grid';
+        } else {
+            suggestionsBox.style.display = 'none';
+        }
+    });
 
     async function init() {
         try {
-            // Fallback mock data if JSON files aren't available locally
             let mapRes, countriesRes;
             try {
                 [mapRes, countriesRes] = await Promise.all([
@@ -284,10 +813,16 @@
             w1.addEventListener('scroll', update);
             w2.addEventListener('scroll', update);
 
-            update();
+            const n1 = document.getElementById('nudge1');
+            const n2 = document.getElementById('nudge2');
             
-            // Run the introductory nudge
-            nudgeWheels();
+            n1.addEventListener('wheel', handleNudgeScroll);
+            n2.addEventListener('wheel', handleNudgeScroll);
+            n1.addEventListener('touchmove', handleNudgeScroll);
+            n2.addEventListener('touchmove', handleNudgeScroll);
+
+            update();
+            startNudgeTimers();
 
         } catch (error) {
             console.error("Initialization error:", error);

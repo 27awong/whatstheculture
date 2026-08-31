@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from tqdm import tqdm
 
 # Initialize
-load_dotenv()
+load_dotenv(override=True)
 client = OpenAI()
 
 
