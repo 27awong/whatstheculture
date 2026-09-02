@@ -824,6 +824,9 @@
             update();
             startNudgeTimers();
 
+            // Insert this line to spin once on load after a 500ms delay:
+            setTimeout(spin, 500);
+
         } catch (error) {
             console.error("Initialization error:", error);
             desc.innerText = "Error loading data.";
